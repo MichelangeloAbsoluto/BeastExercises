@@ -1,0 +1,223 @@
+
+<script src="../simpletest.js"></script>
+
+<script>
+
+/*
+
+Prototype Implementation: 
+	var libraryStorage = {};	
+	librarySytem(library, arrayOfDependencies, callback) {
+		if (arguments > 1) {
+			libraryStorage[library] = callback(arrayOfDependencies)
+		} else {
+			return libraryStorage[library]''
+		}
+	}
+
+Requirements:
+
+
+1. If a Library Name is passed in with no other arguments, it should return the value of that library. 
+2. If a LIbrary Name is passed in with no other arguments and it does not exist, it should throw an error. 
+
+3. If a libraryName is passed in with dependencies and a callback function, the callback function should be able to access the dependent libraries. 
+4. It should accept any number of dependencies. 
+
+5. It should be able to accept a libraryName that is passed in with dependencies that do not exist in the libraryStorage object yet.
+6. If a dependency is defined after it has been passed to a libraryName, when that libraryName is requested its callback should have access to the new value of the dependency. 
+
+7. The callback should only run once (the library should only be defined once.)
+
+*/
+
+(function(){
+
+	var libraryStorage = {};
+
+	// HELPER FUNCTION: 
+	// Stores callback function & array of dependencies in an object. DOES NOT run callback or evaluate dependencies. 
+	function storeLibrary(libraryName, arrayOfDependencies, callback){
+		libraryStorage[libraryName] = {
+			callback: callback,
+			dependencies: arrayOfDependencies
+		}
+	}
+
+	// HELPER FUNCTION: 
+	// Returns value of given library. The values of Dependencies & Callbacks are evaluated here in this function.
+	function loadLibrary(libraryName) {
+		// If library doesn't exist, throws error.
+		if (libraryStorage[libraryName] === undefined) {
+			throw Error(libraryName + ' does not exist.');
+		}
+
+		// If NO dependencies...
+		if (libraryStorage[libraryName].dependencies.length === 0) {
+			// If callback hasn't been run yet, run it here. 
+			if (libraryStorage[libraryName].callback instanceof Function) {
+				libraryStorage[libraryName].callback = libraryStorage[libraryName].callback();
+			}
+			return libraryStorage[libraryName].callback;
+		}
+
+		// If dependencies... evaluate each dependency value. 
+		var dependencies = libraryStorage[libraryName].dependencies;
+		var valueOfDependencies = dependencies.map(function(item) {
+			if (libraryStorage[item] === undefined) {
+				throw Error(item + ' cannot be found.');
+			}
+			return libraryStorage[item].callback();
+		})
+
+		// If callback hasn't been run yet, run it with dependency values as arguments.
+		if (libraryStorage[libraryName].callback instanceof Function) {
+			libraryStorage[libraryName].callback = libraryStorage[libraryName].callback.apply(this, valueOfDependencies);	
+		}
+		
+		// Return value. 
+		return libraryStorage[libraryName].callback;
+	}
+
+	function librarySystem(libraryName, arrayOfDependencies, callback){
+		// Store the library.
+		if (arguments.length > 1) {
+			storeLibrary(libraryName, arrayOfDependencies, callback);
+		// Get the library value.
+		} else {
+			return loadLibrary(libraryName)
+		}
+	}
+	
+	window.librarySystem = librarySystem;
+
+	// FUNCTION FOR TESTING //
+	function clearLibrary(){
+		libraryStorage = {};
+	}
+	window.clearLibrary = clearLibrary;
+
+})()
+
+// NOTE: At the end of each test, we reset the libraryStorage object to be an empty object. 
+tests({
+	'1. If a libraryName is passed in with no other arguments, it should return the value of that library.': function(){
+		librarySystem('name', [], function(){
+			return 'Washington'
+		});
+		var result = librarySystem('name');
+		eq(result, 'Washington');
+
+		clearLibrary();
+	},
+
+	'2. If a libraryName is passed in with no other arguments and it does not exist, it should throw an error.':function(){
+		var gotError = false; 
+		try {
+			var result = librarySystem('pizza');
+		} catch (e) {
+			gotError = Boolean(e instanceof Error)
+		}
+		eq(gotError, true);
+
+		clearLibrary();
+	},	
+
+	'3. If a libraryName is passed in with a dependency, the callback function should be able to access the dependent library.' : function(){
+		
+		//debugger;
+		librarySystem('age', [], function(){return 27});
+		librarySystem('person', ['age'], function(age){
+			return 'I am ' + age + ' years old.';
+		})
+		var result = librarySystem('person');
+		eq(result, 'I am 27 years old.')
+
+		clearLibrary();
+	},
+
+	'4. It should accept any number of dependencies.' : function(){
+		librarySystem('meat', [], function(){return 'pastrami'});
+		librarySystem('bread', [], function(){return 'rye'});
+		librarySystem('cheese', [], function(){return 'mozzarella'})
+
+		librarySystem('sandwich', ['meat', 'bread', 'cheese'], function(meat, bread, cheese){
+			return meat + ', ' + bread + ', ' + cheese + '.';
+		})
+		var result = librarySystem('sandwich');
+		eq(result, 'pastrami, rye, mozzarella.');
+
+		clearLibrary();
+	},
+
+	'5. It should be able to accept a libraryName that is passed in with dependencies that do not exist in the libraryStorage object yet.': function(){
+		var gotError = false;
+		try {
+			librarySystem('sandwich', ['meat', 'cheese'], function(){
+				return 'My favorite sandwich is ' + meat + ' and ' + cheese;
+			});
+		} catch (e) {
+			gotError = Boolean(e instanceof Error); 
+		}
+		eq(gotError, false);
+		clearLibrary();
+	},
+
+	'6. If a dependency is defined after it has been passed to a libraryName, when that libraryName is requested its callback should have access to the new value of the dependency.' : function(){
+		librarySystem('sandwich', ['meat', 'cheese'], function(meat, cheese){
+			return 'My favorite sandwich is ' + meat + ' and ' + cheese + '.';
+		});
+		librarySystem('meat', [], function(){
+			return 'turkey'
+		})
+		librarySystem('cheese', [], function(){
+			return 'swiss'
+		})
+
+		var result = librarySystem('sandwich');
+		eq(result, 'My favorite sandwich is turkey and swiss.');
+		clearLibrary();
+	},
+	'7. The callback should only run once.': function(){
+		var timesCallbackHasRun = 0;
+		librarySystem('sandwich', [], function(){
+			timesCallbackHasRun++;
+			return 'My favorite sandwich is mayo and lettuce.';
+		});
+		librarySystem('sandwich');
+		librarySystem('sandwich');
+		librarySystem('sandwich');
+		eq(timesCallbackHasRun, 1);
+	},
+	'8. The callback should only run once, even if it includes dependencies.': function(){
+		var timesCallbackHasRun = 0;
+		librarySystem('sandwich', ['meat', 'cheese'], function(meat, cheese){
+			timesCallbackHasRun++;
+			return 'My favorite sandwich is ' + meat + ' and ' + cheese;
+		});
+		librarySystem('meat', [], function(){return 'turkey'});
+		librarySystem('cheese', [], function(){return 'swiss'});
+		librarySystem('sandwich');
+		librarySystem('sandwich');
+		librarySystem('sandwich');
+		eq(timesCallbackHasRun, 1);
+		clearLibrary();
+	},
+	'9. If is requested with dependencies that are not defined, it should throw an error.': function(){
+		var gotError = false; 
+		librarySystem('sandwich', ['meat', 'cheese'], function(meat, cheese){
+			return 'My favorite sandwich is ' + meat + ' and ' + cheese;
+		});
+		librarySystem('meat', [], function(){return 'turkey'});
+		try {
+			var result = librarySystem('sandwich');	
+		} catch (e) {
+			 gotError = Boolean(e instanceof Error);
+		}
+		eq(gotError, true);
+	}
+
+});
+
+
+</script>

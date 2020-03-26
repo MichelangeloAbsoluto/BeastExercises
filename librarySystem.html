@@ -1,0 +1,165 @@
+
+<script src="../simpletest.js"></script>
+
+<script>
+
+/*
+Description: 
+	Maps a library and a callback function into a storage object. Callback functions can depend on other libraries mapped in the storage object. Returns the value of any library if requested. 
+
+Prototype Implementation: 
+	var libraryStorage = {};
+	
+	librarySytem(library, arrayOfDependencies, callback) {	
+		if (arguments > 1) {
+			libraryStorage[library] = callback(arrayOfDependencies);
+		} else {
+			return libraryStorage[library]''
+		}
+	}
+
+Requirements:
+
+	GENERAL:
+	1. It should create a library property in the globally accesible libraryStorage object.
+
+	CALLBACK:
+
+	2. If a Library Name is passed in with a callback function, that library name should be equal to the callback's return value.
+
+	3. If a Library Name is passed in with no other arguments, it should return the value of that library. 
+
+	4. If a libraryName is passed in with dependencies and a callback function, the callback function should be able to access the dependent libraries. 
+
+	5. It should accept any number of dependencies. 
+
+*/
+
+(function(){
+
+	var libraryStorage = {};
+
+	function librarySystem(libraryName, arrayOfDependencies, callback){
+		
+		// REQUESTING LIBRARIES: 
+		// If a library is requested, return its value.
+		if (arguments.length === 1) {
+			if (libraryStorage[libraryName] === undefined) {
+				throw Error(libraryName + ' does not exist.');
+			}
+			return libraryStorage[libraryName];
+		}
+
+		// STORING LIBRARIES: 
+
+		// If NO dependencies, add to library. 
+		if (arrayOfDependencies.length === 0) {
+			libraryStorage[libraryName] = callback();
+			return; 
+		} 
+
+		// If dependencies, create an array of their values.
+		var arrayOfValues = arrayOfDependencies.map(function(dependency){
+			return libraryStorage[dependency];
+		})
+		
+		// Then run the callback with array of dependency values as an argument.
+		libraryStorage[libraryName] = callback.apply(this, arrayOfValues);
+	}
+
+	// Make function globally accessible on window. 
+	window.librarySystem = librarySystem;
+
+
+	// HELPER FUNCTIONS FOR MORE TESTING PURPOSES - NOT PART OF PROGRAM
+
+	// Clears storage object so we can run tests with clean libraries.
+	function clearLibrary(){
+		libraryStorage = {};
+	}
+
+	// Checks storage object for tets.
+	function checkLibraryProperty(propertyName){
+		return libraryStorage.hasOwnProperty(propertyName);
+	}
+
+	// Checks storage object for tests.
+	function checkLibraryPropertyValue(propertyName){
+		return libraryStorage[propertyName];
+	}
+	// Add helper functions to window. Only for testing purposes.
+	window.clearLibrary = clearLibrary;
+	window.checkLibraryProperty = checkLibraryProperty;
+	window.checkLibraryPropertyValue = checkLibraryPropertyValue;
+})()
+
+// NOTE: At the end of each test, we reset the libraryStorage object to be an empty object. 
+tests({
+
+	'1. It should create a new library property in the libraryStorage object.': function(){
+		eq(checkLibraryProperty('library'), false);
+		librarySystem('library', [], function(){});
+		eq(checkLibraryProperty('library'), true);
+
+		// Reset library to empty object for next test. //
+		clearLibrary();
+	},
+
+	'2. The new property should have a value equal to the callback return value': function(){
+		librarySystem('firstPresident', [], function(){
+			return 'Washington';
+		});
+		eq(checkLibraryPropertyValue('firstPresident'), 'Washington');
+	},
+
+	'3. If a libraryName is passed in with no other arguments, it should return the value of that library.': function(){
+		librarySystem('name', [], function(){
+			return 'Washington'
+		});
+		var result = librarySystem('name');
+		eq(result, 'Washington');
+
+		clearLibrary();
+	},
+
+	'4. If a libraryName is passed in with no other arguments and it does not exist, it should throw an error.':function(){
+		var gotError = false; 
+		try {
+			var result = librarySystem('pizza');
+		} catch (e) {
+			gotError = Boolean(e instanceof Error)
+		}
+		eq(gotError, true);
+
+		clearLibrary();
+	},	
+
+	'5. If a libraryName is passed in with a dependency, the callback function should be able to access the dependent library.' : function(){
+		librarySystem('age', [], function(){return 27});
+
+		librarySystem('person', ['age'], function(age){
+			return 'I am ' + age + ' years old.';
+		})
+		var result = librarySystem('person');
+		eq(result, 'I am 27 years old.')
+
+		clearLibrary();
+	},
+
+	'6. It should accept any number of dependencies.' : function(){
+		librarySystem('meat', [], function(){return 'pastrami'});
+		librarySystem('bread', [], function(){return 'rye'});
+		librarySystem('cheese', [], function(){return 'mozzarella'})
+
+		librarySystem('sandwich', ['meat', 'bread', 'cheese'], function(meat, bread, cheese){
+			return meat + ', ' + bread + ', ' + cheese + '.';
+		})
+		var result = librarySystem('sandwich');
+		eq(result, 'pastrami, rye, mozzarella.');
+
+		clearLibrary();
+	}
+});
+
+
+</script>

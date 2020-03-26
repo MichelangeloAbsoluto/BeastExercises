@@ -1,0 +1,74 @@
+
+<script src="../simpletest.js"></script>
+
+<script>
+
+/*
+Description: 
+	Calls the debugger then runs the given function. Passes in given arguments to the callback.
+
+Function Prototypical Implementation: 
+	runWithDebugger(callback[, arrayOfArguments]){
+		debugger:
+		callback([... arrayOfArguments])
+	}
+
+Requirements:
+	1. It should run the callback. 
+	2. Arguments for the callback should only be passed in as an array. (return error if not.)
+	3. It should pass every argument of the array into the callback. 
+	4. It should not pass the actual array into the callback. 
+	5. It should run the debugger before running the callback. 
+*/
+
+function runWithDebugger(callback, optionalArray){
+	
+	// Throws Type Error if arguments are not an array //
+	if (optionalArray) {
+		if (!Array.isArray(optionalArray)) {
+			throw new TypeError('Aguments for callback must be passed in as an Array.');
+		}
+	}
+
+	debugger;
+	callback.apply(this, optionalArray);
+}
+
+tests({
+	'1. It should run the callback function.': function(){
+		var timesCallBackHasRun = 0;
+		runWithDebugger(function(){
+			timesCallBackHasRun++;
+		})
+		eq(timesCallBackHasRun, 1);
+	},
+	'2. It should throw a TypeError if callback arguments are not passed in as an array': function(){
+		var notAnArray = 'When I behold huge, cloudy symbols of a high romance';
+		var gotTypeError = false;
+		try {
+			runWithDebugger(function(){}, notAnArray);			
+		} catch (e) {
+			gotTypeError = Boolean(e instanceof TypeError)
+		}
+		eq(gotTypeError, true);
+	},
+	'3. It should pass every argument of the array into the callback.': function(){
+		var personStats = ['Leonardo', 21];
+		var expectedResult = 'Leonardo is 21';
+		
+		runWithDebugger(function(name, age){
+			var result = name + ' is ' + age;
+			eq(result, expectedResult); 
+		}, personStats);
+	},
+	'4. It should not pass an array into the callback': function(){
+		var array = ['Dearon', 'Fox'];
+		runWithDebugger(function(firstName, lastName){
+			eq(firstName instanceof Array, false);
+		}, array);
+	}
+
+});
+
+
+</script>

@@ -1,0 +1,116 @@
+<script src="../simpletest.js"></script>
+
+<script>
+
+
+/*
+DESCRIPTION
+Determines whether a given prototype exists in a given object's prototype chain. Returns a boolean value. 
+
+PROTOTYPE IMPLEMENTATION: 
+isPrototypeOf(prototype, object){
+	BASE CASE:
+	if (object != null) {
+		return false;
+	}
+	RECURSIVE CASE:
+	var prototypeToCheck = Object.getPrototypeOf(object)
+	if (prototypeToCheck === prototype) {
+		return true
+	} else {
+		return isPrototypeOf(prototype, prototypeToCheck)
+	}
+}
+
+REQUIREMENTS:
+
+1. It should return true if the prototype is the prototype of object.
+2. It should return true if the prototype exists anywhere the object's prototype chain.
+3. It should return false if the prototype DOES NOT exist in the object's prototype chain.
+4. It should return false if the prototype and object are the same object. 
+5. It should throw a type error if the given prototype is null or undefined.
+6. It should be able to take Object.prototype as an argument
+
+Object.getPrototype() returns prototype or null if it is already the default object prototype. 
+
+
+*/
+
+function isPrototypeOf(prototypeObject, givenObject){
+	
+	// FUNCTION LOGIC
+	// Recurse Object.getPrototypeOf(object) on its return value 
+	// until we get either NULL or a match with prototypeObject
+
+	// Throw error if given prototype is not valid.
+	if (prototypeObject === null || typeof prototypeObject !== 'object') {
+		throw TypeError('Given prototype must not be null.');
+	}
+
+	// BASE CASE: 
+	// givenObject will be null if we've reached the end of its prototype chain without finding a match. 
+	if (givenObject === null) {
+		return false; 
+	}
+
+	// RECURSIVE CASE:
+	// If it equals the given prototype, return true. 
+	// Otherwise recurse on the returned value. 
+	var prototypeOfGivenObject = Object.getPrototypeOf(givenObject);
+	if (prototypeOfGivenObject === prototypeObject) {
+		return true;
+	} else {
+		return isPrototypeOf(prototypeObject, prototypeOfGivenObject)
+	} 
+}
+
+
+
+tests({
+	'1. It should return true if the prototype is the prototype of object.':function(){
+		var dog = {};
+		var pitbull = Object.create(dog);
+		var result = isPrototypeOf(dog, pitbull);
+		eq(result, true);
+	},
+	'2. It should return true if the prototype exists anywhere the prototype chain of the object.': function(){
+		var animal = {};
+		var dog = Object.create(animal);
+		var pitbull = Object.create(dog);
+		var myDog = Object.create(pitbull) 
+		var result = isPrototypeOf(animal, myDog);
+		eq(result, true);
+	},
+	'3. It should return false if the prototype DOES NOT exist in the prototype chain of the object.': function(){
+		var dog = {}
+		var pitbull = Object.create(dog);
+		var cat = {}; 
+		var result = isPrototypeOf(dog, cat);
+		eq(result, false);
+	},
+	'4. It should return false if the prototype and object are the same object.':function(){
+		var dog = {};
+		var result = isPrototypeOf(dog, dog);
+		eq(result, false);
+	},
+	'5. It should throw a type error if the given prototype is null or undefined.':function(){
+		var nothing = null;
+		var dog = {};
+		var pitbull = Object.create(dog);
+		var gotTypeError = false;
+		try {
+			isPrototypeOf(nothing, pitbull)
+		} catch (e) {
+			gotTypeError = Boolean(e instanceof TypeError);
+		}
+		eq(gotTypeError, true);
+	},
+	'6. This should work too.': function(){
+		var dog = {};
+		var pitbull = Object.create(dog);
+		var result = isPrototypeOf(Object.prototype, pitbull);
+		eq(result, true);
+	}
+});
+
+</script>

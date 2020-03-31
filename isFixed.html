@@ -1,0 +1,121 @@
+<script src="../simpletest.js"></script>
+
+<script>
+
+
+/*
+DESCRIPTION
+Rounds a given number to a precision number of decimals, using string manipulation.
+
+PROTOTYPE IMPLEMENTATION: 
+
+	toFixed(value, precision) {
+		var numberToRound = moveDecimalPoint(value, precision);
+		var result = Math.round(numberToRound)
+		result = moveDecimalPointBack(result, precision)
+		return result;
+	}
+
+REQUIREMENTS:
+
+It should accurately round numbers. 
+It should NOT use exponents. 
+It should NOT use scientific notation. 
+It should use string manipulation. 
+It should leave trailing zeros if the precision asks for it.  
+
+*/
+
+function toFixed(value, precision){
+	var result = moveDecimalPointToRight(value, precision);
+	var result = Math.round(result)
+	result = moveDecimalPointToLeft(result, precision)
+	return result;
+}
+
+// EXAMPLE: Takes 2.725, converts to "272.5", returns 272.5
+function moveDecimalPointToRight(value, precision){
+
+	// Turn number into an array of characters. 
+	var numberAsString = value.toString();
+	var numberAsArray = numberAsString.split('');
+
+	// Find index of the decimal point. 
+	var decimalPosition = numberAsArray.indexOf('.');
+
+	// Separate into left of decimal and right of decimal
+	var leftOfDecimal = numberAsArray.slice(0, decimalPosition);
+	var rightOfDecimal = numberAsArray.slice(decimalPosition + 1);
+
+	// Add trailing zeroes if necessary. 
+	while (rightOfDecimal.length < precision) {
+		rightOfDecimal.push('0');
+	}
+
+	// Add a new decimal precision spots into rightSide
+	rightOfDecimal.splice(precision, 0, '.');
+
+	// Re-join two sides. The only decimal is the one spliced into the rightOfDecimal above.
+	numberAsArray = leftOfDecimal.concat(rightOfDecimal);
+	numberAsString = numberAsArray.join('');
+
+	// Return it as a number. 
+	return Number(numberAsString);
+
+}
+
+// EXAMPLE: Takes 273, converts to "2.73", returns 2.73
+function moveDecimalPointToLeft(value, precision) {
+
+	// Turn number into array of characters. 
+	var numberAsString = value.toString();
+	var numberAsArray = numberAsString.split('');
+	var length = numberAsArray.length;
+
+	// Splice in a decimal point. 
+	numberAsArray.splice(length - precision, 0, '.');
+	
+	// Convert the array into a string, convert that to a number.
+	numberAsString = numberAsArray.join('');
+	return Number(numberAsString);
+}
+
+
+
+tests({
+	'1. It should round 0.615 correctly to 0.62': function() {
+        eq(toFixed(0.615, 2), '0.62');
+    },
+    '2. It should round 10.235 correctly to 10.24': function() {
+        eq(toFixed(10.235, 2), '10.24');
+    },
+    '3. It should round 1.005 correctly to 1.01': function() {
+        eq(toFixed(1.005, 2), '1.01');
+    },
+    '4. It should pad 1.5 correctly to 1.5000': function() {
+        eq(toFixed(1.5, 4), '1.5000');
+    },
+    '5. It should return 10.24': function() {
+        eq(toFixed(10.235, 2), '10.24');
+    },
+    '6. It should return 1.01': function() {
+        eq(toFixed(1.005, 2), '1.01');
+    },
+    '7. It should return 0.236': function() {
+        eq(toFixed(.2356, 3), '0.236');
+    },
+    '8. It should return 10.7': function() {
+        eq(toFixed(10.678, 1), '10.7');
+    },
+    '9. It should return 10': function() {
+        eq(toFixed(10.235, 0), '10');
+    },
+    '10. It should return 11': function() {
+        eq(toFixed(10.635, 0), '11');
+    },
+    '11. It should return 1.00201': function() {
+        eq(toFixed(1.002005, 5), '1.00201');
+    }
+});
+
+</script>
